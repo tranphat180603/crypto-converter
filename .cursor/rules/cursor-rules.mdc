@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+- When running code, use conda activate dev_env first.
+- Use React and Python
+- Be bold and creative
+- Use Token Metrics API for the backend like fetching price of crypto tokens (can ask the user for more info).

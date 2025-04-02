@@ -1,0 +1,18 @@
+{
+  "name": "crypto-converter",
+  "version": "1.0.0",
+  "description": "Crypto conversion platform with Token Metrics API",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "backend": "cd backend && conda activate dev_env && uvicorn main:app --reload",
+    "install:all": "npm i && cd frontend && npm i",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run preview",
+    "start:backend": "cd backend && uvicorn main:app --host 0.0.0.0 --port 8000",
+    "deploy:render": "npm run build"
+  },
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ]
+} 
