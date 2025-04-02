@@ -76,7 +76,7 @@ app.add_middleware(
         "http://localhost:5173",  # Vite default
         "http://localhost:5174",
         "http://localhost:5175",
-        "http://localhost:5176",
+        "http://localhost:5176", 
         "http://localhost:5177",  # Current frontend port
         "http://localhost:4173",  # Vite preview
         "http://127.0.0.1:5173",
@@ -85,11 +85,14 @@ app.add_middleware(
         "http://127.0.0.1:5176", 
         "http://127.0.0.1:5177",
         "http://127.0.0.1:4173",
-        "https://crypto-converter-frontend-a3ca.onrender.com",  # Render domain
+        "https://crypto-converter-frontend-a3ca.onrender.com",  # Your frontend URL
+        "https://crypto-converter-frontend-a3ca.onrender.com:443",  # With explicit port
+        "https://crypto-converter-frontend-a3ca.onrender.com/*",    # Wildcard for all paths
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Type", "Content-Length"]
 )
 
 # Models

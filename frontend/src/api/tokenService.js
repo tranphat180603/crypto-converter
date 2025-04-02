@@ -1,16 +1,32 @@
 import axios from 'axios';
 
-// Use the environment variable from Vite
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Use the environment variable from Vite with a proper fallback for production
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://crypto-converter-api-a3ca.onrender.com');
+
+console.log('Using API URL:', API_URL);
 
 const tokenService = {
   // Get all available tokens
   async getTokens() {
     try {
-      const response = await axios.get(`${API_URL}/tokens`);
+      console.log('Fetching tokens from:', `${API_URL}/tokens`);
+      const response = await axios.get(`${API_URL}/tokens`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('Tokens response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching tokens:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       // Fall back to mock data if API is unavailable
       return this.getMockTokens();
     }
@@ -19,7 +35,12 @@ const tokenService = {
   // Get all available fiat currencies
   async getFiats() {
     try {
-      const response = await axios.get(`${API_URL}/fiats`);
+      const response = await axios.get(`${API_URL}/fiats`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching fiats:', error);
@@ -35,6 +56,11 @@ const tokenService = {
         from_currency: fromCurrency,
         to_currency: toCurrency,
         amount: parseFloat(amount)
+      }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       return response.data;
     } catch (error) {
@@ -43,9 +69,6 @@ const tokenService = {
       // For development, fall back to mock conversion
       console.log('Using mock conversion as fallback');
       return this.mockConvert(fromCurrency, toCurrency, amount);
-      
-      // In production, you'd want to propagate the error
-      // throw new Error(error.response?.data?.detail || 'Failed to convert currency');
     }
   },
 
