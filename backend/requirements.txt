@@ -5,3 +5,4 @@ requests==2.31.0
 python-dotenv==1.0.0
 httpx==0.25.1
 aiofiles==23.2.1 
+asyncpg
