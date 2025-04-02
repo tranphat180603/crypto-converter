@@ -162,7 +162,21 @@ def get_fiat_logo(currency_code):
     return None
 
 # Configure number formatting for better human readability
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+try:
+    # Try to set the preferred locale
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+except locale.Error:
+    try:
+        # Try a more generic locale
+        locale.setlocale(locale.LC_ALL, 'en_US')
+    except locale.Error:
+        try:
+            # Try with just the language code
+            locale.setlocale(locale.LC_ALL, 'en')
+        except locale.Error:
+            # If all else fails, use the default locale
+            locale.setlocale(locale.LC_ALL, '')
+            logger.warning("Could not set specific locale, using system default")
 
 def format_number(number, decimal_places=2):
     """Format number with thousand separators and fixed decimal places"""
