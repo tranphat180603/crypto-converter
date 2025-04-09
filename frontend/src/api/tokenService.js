@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' 
     ? 'http://localhost:8000' 
-    : 'https://crypto-converter-api-ufbk.onrender.com');
+    : 'http://165.227.194.138:1001');
 
 console.log('Using API URL:', API_URL);
 
