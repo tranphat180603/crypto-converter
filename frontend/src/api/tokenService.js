@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' 
     ? 'http://localhost:8000' 
-    : 'http://165.227.194.138:1001');
+    : '/api');
 
 console.log('Using API URL:', API_URL);
 
