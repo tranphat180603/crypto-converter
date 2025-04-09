@@ -98,7 +98,8 @@ app.add_middleware(
         "https://crypto-converter-frontend-a3ca.onrender.com",  # Your frontend URL
         "https://crypto-converter-frontend-a3ca.onrender.com:443",  # With explicit port
         "https://crypto-converter-frontend-a3ca.onrender.com/*",    # Wildcard for all paths
-        "http://165.227.194.138:4173",  # Your VM's frontend URL
+        "http://165.227.194.138:4173",
+        "http://165.227.194.138"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
