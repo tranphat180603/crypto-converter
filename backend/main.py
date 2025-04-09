@@ -10,10 +10,20 @@ import asyncio
 import logging
 import json
 import locale
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Exchange rates API URL (Frankfurter - completely free, no API key needed)
+EXCHANGE_RATES_API_URL = "https://api.frankfurter.app/latest"
+
+# Cache for exchange rates to avoid frequent API calls
+exchange_rates_cache = {
+    "USD": 1.0,  # Base currency is always 1.0
+}
+exchange_rates_timestamp = 0  # Unix timestamp of last update
 
 # Common token IDs for CoinMarketCap
 COINMARKETCAP_IDS = {
@@ -237,6 +247,58 @@ def format_number(number, decimal_places=2):
         # In case of any error, return the original number as string
         return str(number)
 
+async def get_exchange_rates():
+    """Fetch current exchange rates from Frankfurter API"""
+    global exchange_rates_cache, exchange_rates_timestamp
+    current_time = int(time.time())
+    
+    # Only update rates if cache is empty or older than 6 hours (21600 seconds)
+    if not exchange_rates_cache or current_time - exchange_rates_timestamp > 21600:
+        try:
+            # Try all currencies we're interested in
+            supported_symbols = ["EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "INR", "VND", "CNY", "BRL", "NGN"]
+            
+            async with httpx.AsyncClient() as client:
+                # Request currencies
+                symbols_param = ','.join(supported_symbols)
+                url = f"{EXCHANGE_RATES_API_URL}?base=USD&symbols={symbols_param}"
+                
+                logger.info(f"Fetching exchange rates from: {url}")
+                response = await client.get(url, timeout=10.0)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Update the cache with fresh rates
+                if 'rates' in data:
+                    # Start with all static rates as default
+                    rates = FIAT_EXCHANGE_RATES.copy()
+                    # Add USD (base currency)
+                    rates["USD"] = 1.0
+                    # Update with the fresh rates we got
+                    rates.update(data['rates'])
+                    
+                    # Log which currencies were actually found
+                    found_currencies = list(data['rates'].keys())
+                    logger.info(f"Found currencies in API response: {found_currencies}")
+                    
+                    # Log which currencies are using fallback rates
+                    fallback_currencies = [c for c in FIATS.keys() if c != "USD" and c not in data['rates']]
+                    if fallback_currencies:
+                        logger.info(f"Using fallback rates for: {fallback_currencies}")
+                    
+                    exchange_rates_cache = rates
+                    exchange_rates_timestamp = current_time
+                    logger.info(f"Updated exchange rates from Frankfurter API. Found {len(data['rates'])} currencies.")
+        except Exception as e:
+            logger.error(f"Failed to fetch exchange rates: {str(e)}")
+            # If the cache is empty, use the static rates as fallback
+            if not exchange_rates_cache:
+                logger.warning("Using static exchange rates as fallback")
+                exchange_rates_cache = FIAT_EXCHANGE_RATES.copy()
+                exchange_rates_cache["USD"] = 1.0
+    
+    return exchange_rates_cache
+
 @app.get("/")
 async def root():
     return {"message": "Crypto Converter API is running"}
@@ -273,15 +335,17 @@ async def convert_currency(request: ConversionRequest):
         if amount <= 0:
             raise HTTPException(status_code=400, detail="Amount must be greater than zero")
         
+        # Get the latest exchange rates
+        exchange_rates = await get_exchange_rates()
+        
         # Handle fiat-to-fiat conversion using exchange rates
         if from_currency in FIATS and to_currency in FIATS:
-            if from_currency not in FIAT_EXCHANGE_RATES or to_currency not in FIAT_EXCHANGE_RATES:
+            if from_currency not in exchange_rates or to_currency not in exchange_rates:
                 raise HTTPException(status_code=400, detail=f"Exchange rate not available for {from_currency} or {to_currency}")
                 
             # Calculate using exchange rates relative to USD
-            # Example: 1 EUR to JPY = (1 / 0.93) * 156.78 = 168.58 JPY
-            from_rate = FIAT_EXCHANGE_RATES[from_currency]  # 1 USD = X from_currency
-            to_rate = FIAT_EXCHANGE_RATES[to_currency]      # 1 USD = Y to_currency
+            from_rate = exchange_rates[from_currency]  # 1 USD = X from_currency
+            to_rate = exchange_rates[to_currency]      # 1 USD = Y to_currency
             
             # Convert to USD first, then to target currency
             usd_amount = amount / from_rate
@@ -343,7 +407,9 @@ async def convert_currency(request: ConversionRequest):
                         from_logo = db_logo
             else:
                 # For fiat currencies
-                from_price = 1.0
+                exchange_rates = await get_exchange_rates()
+                from_rate = exchange_rates.get(from_currency, 1.0)
+                from_price = 1.0 / from_rate  # USD value of 1 unit of from_currency
                 from_name = FIATS.get(from_currency, from_currency)
                 from_logo = get_fiat_logo(from_currency)
             
@@ -373,7 +439,9 @@ async def convert_currency(request: ConversionRequest):
                         to_logo = db_logo
             else:
                 # For fiat currencies
-                to_price = 1.0
+                exchange_rates = await get_exchange_rates()
+                to_rate = exchange_rates.get(to_currency, 1.0)
+                to_price = 1.0 / to_rate  # USD value of 1 unit of to_currency
                 to_name = FIATS.get(to_currency, to_currency)
                 to_logo = get_fiat_logo(to_currency)
             
@@ -385,19 +453,19 @@ async def convert_currency(request: ConversionRequest):
                 else:
                     # One is fiat
                     if from_currency in FIATS:
-                        # Fiat to crypto: 1/price adjusted for exchange rate
-                        # Example: 100 EUR to BTC
-                        # 1. Convert EUR to USD: 100 EUR = 107.53 USD (100 / 0.93)
-                        # 2. Convert USD to BTC: 107.53 USD = 0.00129 BTC (107.53 / 83000)
-                        from_rate = FIAT_EXCHANGE_RATES.get(from_currency, 1.0)
+                        # Get exchange rate for fiat
+                        exchange_rates = await get_exchange_rates()
+                        from_rate = exchange_rates.get(from_currency, 1.0)
+                        
+                        # Fiat to crypto: convert fiat to USD, then to crypto
                         usd_amount = amount / from_rate  # Convert to USD first
                         rate = usd_amount * (1 / to_price) / amount  # Then to crypto
                     else:
-                        # Crypto to fiat: price adjusted for exchange rate
-                        # Example: 1 BTC to EUR
-                        # 1. Convert BTC to USD: 1 BTC = 83000 USD
-                        # 2. Convert USD to EUR: 83000 USD = 77,190 EUR (83000 * 0.93)
-                        to_rate = FIAT_EXCHANGE_RATES.get(to_currency, 1.0)
+                        # Get exchange rate for fiat
+                        exchange_rates = await get_exchange_rates()
+                        to_rate = exchange_rates.get(to_currency, 1.0)
+                        
+                        # Crypto to fiat: convert crypto to USD, then to fiat
                         rate = from_price * to_rate  # USD value * exchange rate
                 
                 converted_amount = amount * rate
@@ -450,8 +518,11 @@ async def startup_event():
             max_size=10
         )
         logger.info("Database connection pool created successfully!")
+        
+        # Prefetch exchange rates
+        await get_exchange_rates()
     except Exception as e:
-        logger.error(f"Error creating database pool: {str(e)}", exc_info=True)
+        logger.error(f"Error during startup: {str(e)}", exc_info=True)
         raise
 
 @app.on_event("shutdown")
@@ -470,6 +541,9 @@ async def search_tokens(query: str):
         # First check against our pre-defined list of tokens
         predefined_results = []
         query_lower = query.lower()
+        
+        # Get current exchange rates for fiats
+        exchange_rates = await get_exchange_rates()
         
         # Check in our common tokens first
         for symbol, token_id in COINMARKETCAP_IDS.items():
@@ -494,7 +568,7 @@ async def search_tokens(query: str):
                         symbol=symbol,
                         name=name,
                         logo=get_fiat_logo(symbol),
-                        price_usd=1.0 if symbol == 'USD' else FIAT_EXCHANGE_RATES.get(symbol, 1.0)
+                        price_usd=1.0 if symbol == 'USD' else exchange_rates.get(symbol, FIAT_EXCHANGE_RATES.get(symbol, 1.0))
                     )
                 )
                 
@@ -720,6 +794,32 @@ def extract_image_from_db(images_data):
             return images_data["large"]
     
     return None
+
+@app.get("/rates")
+async def get_current_rates():
+    """Get current exchange rates for all supported fiat currencies"""
+    try:
+        rates = await get_exchange_rates()
+        formatted_rates = {}
+        
+        # Format rates for display
+        for currency, rate in rates.items():
+            if currency in FIATS:
+                formatted_rates[currency] = {
+                    "symbol": currency,
+                    "name": FIATS.get(currency, currency),
+                    "rate": rate,
+                    "rate_formatted": format_number(rate),
+                    "logo": get_fiat_logo(currency)
+                }
+        
+        return {
+            "base": "USD",
+            "last_updated": exchange_rates_timestamp,
+            "rates": formatted_rates
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching exchange rates: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
