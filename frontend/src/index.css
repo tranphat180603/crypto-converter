@@ -8,17 +8,18 @@ html, body, #root {
   margin: 0;
   padding: 0;
   height: auto;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Force exact centering for the app container and converter */
 #root {
   display: block;
   width: 100%;
-  padding: 0;
+  padding: 8px;
   margin: 0;
   height: auto;
   background-color: transparent !important;
+  overflow: visible;
 }
 
 body {
@@ -27,7 +28,7 @@ body {
   min-width: 320px;
   width: 100%;
   height: auto;
-  overflow: hidden;
+  overflow: visible;
   background-color: transparent !important;
   color: white;
 }
@@ -36,14 +37,14 @@ body {
 .app-container {
   position: relative;
   border-radius: 16px;
-  padding: 20px;
-  background-color: #1a1a1a;
+  padding: 15px;
+  background-color: #121212;
   overflow: visible;
-  margin: 0 auto;
-  max-width: 480px;
+  margin: 5px auto;
+  max-width: 470px;
   width: 100%;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-  border: 3px solid rgba(40, 40, 40, 0.7);
+  border: 3px solid rgba(25, 25, 25, 0.8);
   background-clip: padding-box;
   transition: transform 0.3s ease;
 }
@@ -55,7 +56,7 @@ body {
   inset: -3px;
   border-radius: 16px;
   padding: 3px;
-  background: linear-gradient(45deg, #f7d625, #c0c0c0, #000000, #f7d625);
+  background: linear-gradient(45deg, #ffd700, #b8860b, #000000, #b8860b);
   background-size: 300% 300%;
   animation: none; /* No animation by default */
   -webkit-mask: 
@@ -72,7 +73,8 @@ body {
 /* Active state classes */
 .app-container.active {
   border-color: transparent;
-  transform: scale(1.01);
+  transform: scale(1.008);
+  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.4);
 }
 
 .app-container.active::before {
