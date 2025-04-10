@@ -1,8 +1,9 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
+  background-color: transparent;
 }
 
 .logo {
@@ -44,24 +45,22 @@
 /* App layout with absolute centering */
 .app-container {
   width: 100%;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #1a1a1a;
-  padding: 20px;
   box-sizing: border-box;
 }
 
 .app-content {
   width: 100%;
-  max-width: 530px;
+  max-width: 480px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 5px;
 }
 
 .app-logo {
-  height: 64px;
-  margin-bottom: 2rem;
+  height: 45px;
+  margin-bottom: 1rem;
 }
