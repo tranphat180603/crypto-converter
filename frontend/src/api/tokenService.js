@@ -3,7 +3,7 @@ import axios from 'axios';
 // Use the environment variable from Vite with a proper fallback for production
 const API_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
+    ? 'http://localhost:2003' 
     : '/api');
 
 console.log('Using API URL:', API_URL);
